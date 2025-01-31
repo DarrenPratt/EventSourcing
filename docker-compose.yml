@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_eventstore
+    restart: always
+    environment:
+      POSTGRES_DB: eventstore
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Secret!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - event_network
+
+volumes:
+  postgres_data:
+
+networks:
+  event_network:
+    driver: bridge

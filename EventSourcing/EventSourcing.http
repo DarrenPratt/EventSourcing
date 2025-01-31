@@ -1,0 +1,6 @@
+@EventSourcing_HostAddress = http://localhost:5006
+
+GET {{EventSourcing_HostAddress}}/student/
+Accept: application/json
+
+###
