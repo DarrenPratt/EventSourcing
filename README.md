@@ -172,9 +172,98 @@ namespace EventSourcingMarten.Models
 }
 ```
 
+8️⃣ Step **8: Define Event Store Service (Services/StudentEventStore.cs)**
+
+Create Services/StudentEventStore.cs:
+```
+csharp
+using Marten;
+using EventSourcingTutorial.Models;
+
+namespace EventSourcingTutorial.Services
+{
+    public class StudentEventStore
+    {
+        private readonly IDocumentStore _store;
+
+        public StudentEventStore(IDocumentStore store)
+        {
+            _store = store;
+        }
+
+        public async Task SaveEventAsync<T>(Guid streamId, T @event) where T : class
+        {
+            using var session = _store.LightweightSession();
+            session.Events.Append(streamId, @event);
+            await session.SaveChangesAsync();
+        }
+
+        public async Task<Student?> GetStudentAsync(Guid studentId)
+        {
+            using var session = _store.QuerySession();
+            return await session.Events.AggregateStreamAsync<Student>(studentId);
+        }
+    }
+}
+```
+
+## **9️⃣ Step 9: Define Aggregate (`Services/StudentEventStore.cs`)**
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using EventSourcingTutorial.Services;
+using EventSourcingTutorial.Models;
+
+namespace EventSourcingTutorial.Controllers
+{
+    [ApiController]
+    [Route("api/students")]
+    public class StudentController : ControllerBase
+    {
+        private readonly StudentEventStore _eventStore;
+
+        public StudentController(StudentEventStore eventStore)
+        {
+            _eventStore = eventStore;
+        }
+
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateStudent([FromBody] StudentCreated studentCreated)
+        {
+            await _eventStore.SaveEventAsync(studentCreated.StudentId, studentCreated);
+            return Ok(new { Message = "Student created", studentCreated.StudentId });
+        }
+
+        [HttpPost("enroll")]
+        public async Task<IActionResult> EnrollStudent([FromBody] StudentEnrolled studentEnrolled)
+        {
+            await _eventStore.SaveEventAsync(studentEnrolled.StudentId, studentEnrolled);
+            return Ok(new { Message = "Student enrolled", studentEnrolled.StudentId });
+        }
+
+        [HttpPost("update")]
+        public async Task<IActionResult> UpdateStudent([FromBody] StudentUpdated studentUpdated)
+        {
+            await _eventStore.SaveEventAsync(studentUpdated.StudentId, studentUpdated);
+            return Ok(new { Message = "Student updated", studentUpdated.StudentId });
+        }
+
+        [HttpGet("{studentId}")]
+        public async Task<IActionResult> GetStudent(Guid studentId)
+        {
+            var student = await _eventStore.GetStudentAsync(studentId);
+            if (student == null) return NotFound();
+
+            return Ok(student);
+        }
+    }
+}
+```
+
+
+
 ---
 
-## **8️⃣ Step 8: Add Unenrollment to Controller (`StudentController.cs`)**
+## **🔟 Step 10: Add Unenrollment to Controller (`StudentController.cs`)**
 Modify `Controllers/StudentController.cs`:
 ```csharp
 [HttpPost("unenroll")]
@@ -187,7 +276,7 @@ public async Task<IActionResult> UnenrollStudent([FromBody] StudentUnenrolled st
 
 ---
 
-## **🔟 Step 10: Run & Test**
+## **11 Step 10: Run & Test**
 Start the API:
 ```sh
 dotnet run
