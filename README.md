@@ -84,7 +84,6 @@ Edit `appsettings.json`:
 
 ## **5️⃣ Step 5: Configure Marten in `Program.cs`**
 Modify `Program.cs` to register **Marten**:
-
 ```csharp
 using Marten;
 using Weasel.Core;
@@ -129,7 +128,7 @@ namespace EventSourcingMarten.Models
 
 ---
 
-## **7️⃣ Step 7: Define Aggregate (`Student.cs`)**
+## **7️⃣ Step 7: Create Student (`Student.cs`)**
 Create `Models/Student.cs`:
 ```csharp
 using Marten.Events.Aggregation;
@@ -172,11 +171,10 @@ namespace EventSourcingMarten.Models
 }
 ```
 
-8️⃣ Step **8: Define Event Store Service (Services/StudentEventStore.cs)**
+## **8️⃣ Step 8: Define Event Store Service (Services/StudentEventStore.cs)**
 
 Create Services/StudentEventStore.cs:
-```
-csharp
+```csharp
 using Marten;
 using EventSourcingTutorial.Models;
 
@@ -207,7 +205,7 @@ namespace EventSourcingTutorial.Services
 }
 ```
 
-## **9️⃣ Step 9: Define Aggregate (`Services/StudentEventStore.cs`)**
+## **9️⃣ Step 9: Create Controller (`Controllers/StudentController.cs`)**
 ```csharp
 using Microsoft.AspNetCore.Mvc;
 using EventSourcingTutorial.Services;
@@ -247,6 +245,13 @@ namespace EventSourcingTutorial.Controllers
             return Ok(new { Message = "Student updated", studentUpdated.StudentId });
         }
 
+        [HttpPost("unenroll")]
+        public async Task<IActionResult> UnenrollStudent([FromBody] StudentUnenrolled studentUnenrolled)
+        {
+            await _eventStore.SaveEventAsync(studentUnenrolled.StudentId, studentUnenrolled);
+            return Ok(new { Message = "Student unenrolled", studentUnenrolled.StudentId });
+        }
+
         [HttpGet("{studentId}")]
         public async Task<IActionResult> GetStudent(Guid studentId)
         {
@@ -259,24 +264,7 @@ namespace EventSourcingTutorial.Controllers
 }
 ```
 
-
-
----
-
-## **🔟 Step 10: Add Unenrollment to Controller (`StudentController.cs`)**
-Modify `Controllers/StudentController.cs`:
-```csharp
-[HttpPost("unenroll")]
-public async Task<IActionResult> UnenrollStudent([FromBody] StudentUnenrolled studentUnenrolled)
-{
-    await _eventStore.SaveEventAsync(studentUnenrolled.StudentId, studentUnenrolled);
-    return Ok(new { Message = "Student unenrolled", studentUnenrolled.StudentId });
-}
-```
-
----
-
-## **11 Step 10: Run & Test**
+## **🔟 Step 10: Run & Test**
 Start the API:
 ```sh
 dotnet run
@@ -384,7 +372,7 @@ using EventSourcingMarten.Models;
 
 namespace EventSourcingMarten.Projections
 {
-    public class StudentProjectionHandler : SingleStreamAggregation<StudentProjection>
+    public class StudentProjectionHandler : SingleStreamProjection<StudentProjection>
     {
         public StudentProjection Create(StudentCreated @event)
         {
@@ -419,7 +407,7 @@ namespace EventSourcingMarten.Projections
 
 ---
 
-## **3️⃣ Step 3: Query Projections via API**
+## **3️⃣ Step 3: Add Projections to Controller**
 Modify `Controllers/StudentController.cs`:
 ```csharp
 [HttpGet("projection/{studentId}")]
